@@ -1,32 +1,235 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
-// Desafio de Xadrez - MateCheck
-// Este código inicial serve como base para o desenvolvimento do sistema de movimentação das peças de xadrez.
-// O objetivo é utilizar estruturas de repetição e funções para determinar os limites de movimentação dentro do jogo.
+#define TAM 8
+
+// Funções gráficas
+void exibirCabecalho() {
+    printf("\n=====================================\n");
+    printf("         ♔ JOGO DE XADREZ ♚         \n");
+    printf("=====================================\n");
+}
+
+void exibirMenuPrincipal() {
+    printf("\n╔══════════════════════════════╗\n");
+    printf("║         MENU PRINCIPAL       ║\n");
+    printf("╠══════════════════════════════╣\n");
+    printf("║ 1. Jogar                     ║\n");
+    printf("║ 2. Instruções                ║\n");
+    printf("║ 3. Sair                      ║\n");
+    printf("╚══════════════════════════════╝\n");
+    printf("Escolha uma opção: ");
+}
+
+void exibirInstrucoes() {
+    printf("\n╔════════════════════════════════════╗\n");
+    printf("║           INSTRUÇÕES DO JOGO       ║\n");
+    printf("╠════════════════════════════════════╣\n");
+    printf("║ - Use coordenadas como E2, D4      ║\n");
+    printf("║ - Apenas peças brancas se movem    ║\n");
+    printf("║ - O tabuleiro segue padrão A-H/1-8 ║\n");
+    printf("║ - Não é permitido mover para casas ║\n");
+    printf("║   ocupadas por aliados             ║\n");
+    printf("╚════════════════════════════════════╝\n");
+}
+
+// Nome completo da peça
+const char* nomeDaPeca(char letra) {
+    switch (letra) {
+        case 'P': return "Peão";
+        case 'T': return "Torre";
+        case 'C': return "Cavalo";
+        case 'B': return "Bispo";
+        case 'D': return "Dama";
+        case 'R': return "Rei";
+        default: return "Peça";
+    }
+}
+
+// Símbolo Unicode da peça
+const char* simboloDaPeca(char letra) {
+    switch (letra) {
+        case 'R': return "♔"; case 'r': return "♚";
+        case 'D': return "♕"; case 'd': return "♛";
+        case 'T': return "♖"; case 't': return "♜";
+        case 'B': return "♗"; case 'b': return "♝";
+        case 'C': return "♘"; case 'c': return "♞";
+        case 'P': return "♙"; case 'p': return "♟";
+        default: return " ";
+    }
+}
+
+// Tabuleiro
+void inicializarTabuleiro(char tabuleiro[TAM][TAM]) {
+    char linhaPretas[] = {'t', 'c', 'b', 'd', 'r', 'b', 'c', 't'};
+    char linhaBrancas[] = {'T', 'C', 'B', 'D', 'R', 'B', 'C', 'T'};
+
+    for (int i = 0; i < TAM; i++)
+        for (int j = 0; j < TAM; j++)
+            tabuleiro[i][j] = ' ';
+
+    for (int j = 0; j < TAM; j++) {
+        tabuleiro[0][j] = linhaPretas[j];
+        tabuleiro[1][j] = 'p';
+        tabuleiro[6][j] = 'P';
+        tabuleiro[7][j] = linhaBrancas[j];
+    }
+}
+
+void imprimirTabuleiro(char tabuleiro[TAM][TAM]) {
+    printf("\n    A   B   C   D   E   F   G   H\n");
+    printf("  +---+---+---+---+---+---+---+---+\n");
+    for (int i = 0; i < TAM; i++) {
+        int linhaXadrez = TAM - i;
+        printf("%d |", linhaXadrez);
+        for (int j = 0; j < TAM; j++)
+            printf(" %s |", simboloDaPeca(tabuleiro[i][j]));
+        printf(" %d\n", linhaXadrez);
+        printf("  +---+---+---+---+---+---+---+---+\n");
+    }
+    printf("    A   B   C   D   E   F   G   H\n");
+}
+
+// Utilitários
+int coordCol(char letra) { return toupper(letra) - 'A'; }
+int coordLin(char numero) { return TAM - (numero - '0'); }
+int dentroDoTabuleiro(int linha, int coluna) {
+    return linha >= 0 && linha < TAM && coluna >= 0 && coluna < TAM;
+}
+int casaOcupadaPorAliado(char tabuleiro[TAM][TAM], int linha, int coluna) {
+    return isupper(tabuleiro[linha][coluna]);
+}
+
+// Movimentos válidos
+void listarMovimentosValidos(char tabuleiro[TAM][TAM], char peca, int linha, int coluna) {
+    printf("\nMovimentos válidos para %s em %c%d:\n", nomeDaPeca(peca), 'A' + coluna, TAM - linha);
+    int i, j;
+
+    switch (peca) {
+        case 'P':
+            if (dentroDoTabuleiro(linha - 1, coluna) && tabuleiro[linha - 1][coluna] == ' ')
+                printf("- %c%d\n", 'A' + coluna, TAM - (linha - 1));
+            if (linha == 6 && tabuleiro[linha - 1][coluna] == ' ' && tabuleiro[linha - 2][coluna] == ' ')
+                printf("- %c%d\n", 'A' + coluna, TAM - (linha - 2));
+            if (dentroDoTabuleiro(linha - 1, coluna + 1) && !casaOcupadaPorAliado(tabuleiro, linha - 1, coluna + 1))
+                printf("- %c%d\n", 'A' + (coluna + 1), TAM - (linha - 1));
+            if (dentroDoTabuleiro(linha - 1, coluna - 1) && !casaOcupadaPorAliado(tabuleiro, linha - 1, coluna - 1))
+                printf("- %c%d\n", 'A' + (coluna - 1), TAM - (linha - 1));
+            break;
+
+        case 'T':
+            for (i = linha - 1; i >= 0 && tabuleiro[i][coluna] == ' '; i--)
+                printf("- %c%d\n", 'A' + coluna, TAM - i);
+            for (i = linha + 1; i < TAM && tabuleiro[i][coluna] == ' '; i++)
+                printf("- %c%d\n", 'A' + coluna, TAM - i);
+            for (j = coluna - 1; j >= 0 && tabuleiro[linha][j] == ' '; j--)
+                printf("- %c%d\n", 'A' + j, TAM - linha);
+            for (j = coluna + 1; j < TAM && tabuleiro[linha][j] == ' '; j++)
+                printf("- %c%d\n", 'A' + j, TAM - linha);
+            break;
+
+        case 'B':
+            for (i = 1; dentroDoTabuleiro(linha - i, coluna + i) && tabuleiro[linha - i][coluna + i] == ' '; i++)
+                printf("- %c%d\n", 'A' + (coluna + i), TAM - (linha - i));
+            for (i = 1; dentroDoTabuleiro(linha - i, coluna - i) && tabuleiro[linha - i][coluna - i] == ' '; i++)
+                printf("- %c%d\n", 'A' + (coluna - i), TAM - (linha - i));
+            for (i = 1; dentroDoTabuleiro(linha + i, coluna + i) && tabuleiro[linha + i][coluna + i] == ' '; i++)
+                printf("- %c%d\n", 'A' + (coluna + i), TAM - (linha + i));
+            for (i = 1; dentroDoTabuleiro(linha + i, coluna - i) && tabuleiro[linha + i][coluna - i] == ' '; i++)
+            printf("- %c%d\n", 'A' + (coluna - i), TAM - (linha + i));
+            break;
+
+        case 'C': {
+            int movimentos[8][2] = {
+                {-2, +1}, {-2, -1}, {+2, +1}, {+2, -1},
+                {-1, +2}, {+1, +2}, {-1, -2}, {+1, -2}
+            };
+            for (i = 0; i < 8; i++) {
+                int nl = linha + movimentos[i][0];
+                int nc = coluna + movimentos[i][1];
+                if (dentroDoTabuleiro(nl, nc) && !casaOcupadaPorAliado(tabuleiro, nl, nc))
+                    printf("- %c%d\n", 'A' + nc, TAM - nl);
+            }
+            break;
+        }
+    }
+}
 
 int main() {
-    // Nível Novato - Movimentação das Peças
-    // Sugestão: Declare variáveis constantes para representar o número de casas que cada peça pode se mover.
+    system("chcp 65001 > null"); //utf8
+    int opcao;
+    char tabuleiro[TAM][TAM];
 
-    // Implementação de Movimentação do Bispo
-    // Sugestão: Utilize uma estrutura de repetição para simular a movimentação do Bispo em diagonal.
+    exibirCabecalho();
+    do {
+        exibirMenuPrincipal();
+        scanf("%d", &opcao);
 
-    // Implementação de Movimentação da Torre
-    // Sugestão: Utilize uma estrutura de repetição para simular a movimentação da Torre para a direita.
+        switch (opcao) {
+            case 1: {
+                int continuar = 1;
+                inicializarTabuleiro(tabuleiro);
 
-    // Implementação de Movimentação da Rainha
-    // Sugestão: Utilize uma estrutura de repetição para simular a movimentação da Rainha para a esquerda.
+                while (continuar) {
+                    imprimirTabuleiro(tabuleiro);
 
-    // Nível Aventureiro - Movimentação do Cavalo
-    // Sugestão: Utilize loops aninhados para simular a movimentação do Cavalo em L.
-    // Um loop pode representar a movimentação horizontal e outro vertical.
+                    char origem[3], destino[3];
+                    printf("\nDigite a posição da peça (ex: E2): ");
+                    scanf("%s", origem);
 
-    // Nível Mestre - Funções Recursivas e Loops Aninhados
-    // Sugestão: Substitua as movimentações das peças por funções recursivas.
-    // Exemplo: Crie uma função recursiva para o movimento do Bispo.
+                    int colOrigem = coordCol(origem[0]);
+                    int linOrigem = coordLin(origem[1]);
+                    char peca = tabuleiro[linOrigem][colOrigem];
 
-    // Sugestão: Implemente a movimentação do Cavalo utilizando loops com variáveis múltiplas e condições avançadas.
-    // Inclua o uso de continue e break dentro dos loops.
+                    if (!isupper(peca)) {
+                        printf("Só é permitido mover peças brancas (maiúsculas).\n");
+                        continue;
+                    }
+
+                    listarMovimentosValidos(tabuleiro, peca, linOrigem, colOrigem);
+
+                    printf("\nDigite a posição de destino (ex: E4): ");
+                    scanf("%s", destino);
+
+                    int colDestino = coordCol(destino[0]);
+                    int linDestino = coordLin(destino[1]);
+
+                    if (!dentroDoTabuleiro(linDestino, colDestino)) {
+                        printf("Destino fora do tabuleiro.\n");
+                        continue;
+                    }
+
+                    if (casaOcupadaPorAliado(tabuleiro, linDestino, colDestino)) {
+                        printf("Destino ocupado por peça aliada. Movimento inválido.\n");
+                        continue;
+                    }
+
+                    tabuleiro[linDestino][colDestino] = peca;
+                    tabuleiro[linOrigem][colOrigem] = ' ';
+                    printf("\nMover %s de %s para %s\n", nomeDaPeca(peca), origem, destino);
+
+                    imprimirTabuleiro(tabuleiro);
+
+                    printf("\nDeseja continuar? (1 - Sim, 0 - Não): ");
+                    scanf("%d", &continuar);
+                }
+                break;
+            }
+
+            case 2:
+                exibirInstrucoes();
+                break;
+
+            case 3:
+                printf("\nObrigado por jogar! Até a próxima.\n");
+                break;
+
+            default:
+                printf("\nOpção inválida. Tente novamente.\n");
+        }
+    } while (opcao != 3);
 
     return 0;
 }
